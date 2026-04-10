@@ -8,7 +8,14 @@ const {
   EmbedBuilder
 } = require('discord.js');
 
-const { token } = require('./config.json');
+// ✅ ใช้ ENV แทน config.json
+const token = process.env.TOKEN;
+
+// กันพัง
+if (!token) {
+  console.error("❌ ไม่พบ TOKEN");
+  process.exit(1);
+}
 
 const client = new Client({
   intents: [
@@ -98,26 +105,21 @@ client.once('ready', () => {
 client.on('interactionCreate', async interaction => {
 
   // ===== /start =====
-  if (interaction.isChatInputCommand()) {
-    if (interaction.commandName === 'start') {
+  if (interaction.isChatInputCommand() && interaction.commandName === 'start') {
 
-      const embed = new EmbedBuilder()
-        .setTitle('📢 รับยศตามภูมิภาคและจังหวัด')
-        .setDescription('**77 จังหวัด เลือกภาค**\nเลือกภาค | เลือกจังหวัด')
-        .setImage('https://i.imgur.com/abc123.png')
-        .setColor(0x2b2dff)
-        .setFooter({ text: 'ระบบเลือกยศอัตโนมัติ' });
+    const embed = new EmbedBuilder()
+      .setTitle('📢 รับยศตามภูมิภาคและจังหวัด')
+      .setDescription('**77 จังหวัด เลือกภาค**\nเลือกภาค | เลือกจังหวัด')
+      .setColor(0x2b2dff)
+      .setFooter({ text: 'ระบบเลือกยศอัตโนมัติ' });
 
-      // 🔥 ซ่อนคำสั่ง
-      await interaction.deferReply({ ephemeral: true });
-      await interaction.deleteReply();
+    await interaction.deferReply({ ephemeral: true });
+    await interaction.deleteReply();
 
-      // 🔥 ส่ง Embed ลงห้อง
-      await interaction.channel.send({
-        embeds: [embed],
-        components: [regionMenu(), resetBtn()]
-      });
-    }
+    await interaction.channel.send({
+      embeds: [embed],
+      components: [regionMenu(), resetBtn()]
+    });
   }
 
   // ===== เลือกภาค =====
@@ -151,12 +153,12 @@ client.on('interactionCreate', async interaction => {
     }
 
     try {
-      Object.values(regions).flat().forEach(async (prov) => {
+      for (const prov of Object.values(regions).flat()) {
         const oldRole = interaction.guild.roles.cache.find(r => r.name === prov);
         if (oldRole && member.roles.cache.has(oldRole.id)) {
           await member.roles.remove(oldRole);
         }
-      });
+      }
 
       await member.roles.add(role);
 
@@ -182,12 +184,12 @@ client.on('interactionCreate', async interaction => {
   if (interaction.isButton() && interaction.customId === 'reset') {
     const member = await interaction.guild.members.fetch(interaction.user.id);
 
-    Object.values(regions).flat().forEach(async (prov) => {
+    for (const prov of Object.values(regions).flat()) {
       const role = interaction.guild.roles.cache.find(r => r.name === prov);
       if (role && member.roles.cache.has(role.id)) {
         await member.roles.remove(role);
       }
-    });
+    }
 
     await interaction.update({
       content: '🔄 รีเซ็ตแล้ว',
